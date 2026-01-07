@@ -3,16 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>專業訃聞完整版產生器</title>
+    <title>專業訃聞產生器-終極自定義版</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         :root { --gold: #d4a373; --bg: #1a1a1a; }
         body { font-family: "Microsoft JhengHei", serif; margin: 0; background: #2c3e50; color: #fff; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         
-        /* 頂部輸入區 */
-        #input-area { flex: 0 0 50%; background: var(--bg); overflow-y: auto; padding: 15px; border-bottom: 2px solid var(--gold); }
+        #input-area { flex: 0 0 55%; background: var(--bg); overflow-y: auto; padding: 15px; border-bottom: 2px solid var(--gold); }
         .mode-bar { display: flex; gap: 8px; margin-bottom: 15px; position: sticky; top: 0; background: var(--bg); z-index: 10; padding-bottom: 5px; }
-        .m-btn { flex: 1; padding: 10px; border: none; border-radius: 4px; background: #444; color: white; font-weight: bold; }
+        .m-btn { flex: 1; padding: 10px; border: none; border-radius: 4px; background: #444; color: white; font-weight: bold; font-size: 14px; }
         .m-btn.active { background: var(--gold); color: #000; }
 
         .cat { margin-bottom: 15px; background: #252525; padding: 10px; border-radius: 8px; }
@@ -21,13 +20,15 @@
         label { display: block; font-size: 11px; color: #aaa; margin-bottom: 2px; }
         input { width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #333; background: #000; color: #fff; box-sizing: border-box; font-size: 15px; }
 
-        /* 預覽區 */
+        /* 自定義欄位樣式 */
+        .custom-row { display: flex; gap: 5px; margin-bottom: 8px; align-items: flex-end; }
+        .custom-row .col-tag { flex: 2; }
+        .custom-row .col-name { flex: 3; }
+        .add-btn { width: 100%; padding: 8px; background: #3498db; color: white; border: none; border-radius: 4px; margin-top: 10px; font-weight: bold; }
+
+        /* 預覽與畫布 */
         #preview-pane { flex: 1; background: #34495e; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; align-items: center; }
-        #obit-canvas { 
-            width: 100%; max-width: 400px; background: white; padding: 30px; color: black; box-sizing: border-box; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5); transform: scale(0.85); transform-origin: top center;
-        }
-        
+        #obit-canvas { width: 100%; max-width: 400px; background: white; padding: 30px; color: black; box-sizing: border-box; box-shadow: 0 4px 15px rgba(0,0,0,0.5); transform: scale(0.85); transform-origin: top center; }
         .h1 { text-align: center; font-size: 36px; font-weight: bold; margin-bottom: 15px; letter-spacing: 15px; }
         .basic-info { font-size: 13px; border-bottom: 1px solid #ccc; padding-bottom: 10px; margin-bottom: 15px; line-height: 1.6; }
         .name-box { border: 2px solid #000; text-align: center; padding: 10px; font-size: 22px; font-weight: bold; margin-bottom: 20px; }
@@ -35,7 +36,6 @@
         .r-label { width: 95px; font-weight: bold; font-size: 14px; border-right: 1px solid #000; margin-right: 10px; flex-shrink: 0; }
         .r-names { flex-grow: 1; font-size: 14px; letter-spacing: 1px; }
 
-        /* 按鈕與彈出層 */
         .f-bar { padding: 10px; background: #1a1a1a; }
         .gen-btn { width: 100%; padding: 15px; background: #27ae60; color: white; border: none; border-radius: 4px; font-size: 18px; font-weight: bold; }
         #pop-img { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 100; flex-direction: column; align-items: center; justify-content: center; }
@@ -55,10 +55,16 @@
         <div class="i-row"><label>故者姓名</label><input type="text" id="i_main" value="王大明" oninput="up()"></div>
         <div class="i-row"><label>住址</label><input type="text" id="i_addr" oninput="up()"></div>
         <div class="i-row"><label>聯絡電話</label><input type="text" id="i_tel" oninput="up()"></div>
-        <div class="i-row"><label>生辰 (農/國曆)</label><input type="text" id="i_birth" placeholder="例：民國20年1月1日" oninput="up()"></div>
+        <div class="i-row"><label>生辰 (農/國曆)</label><input type="text" id="i_birth" oninput="up()"></div>
     </div>
 
     <div id="fields"></div>
+
+    <div class="cat">
+        <div class="cat-t">自定義親屬</div>
+        <div id="custom-fields-container"></div>
+        <button class="add-btn" onclick="addCustomField()">＋ 增加自定義親屬欄位</button>
+    </div>
 </div>
 
 <div id="preview-pane">
@@ -77,11 +83,9 @@
 <div id="pop-img" onclick="this.style.display='none'">
     <div style="color:var(--gold); margin-bottom:10px;">↓ 長按圖片儲存至相簿 ↓</div>
     <img id="res-img" src="">
-    <div style="margin-top:10px; color:#ccc;">點擊關閉</div>
 </div>
 
 <script>
-    // 完整 39 個親屬欄位
     const fData = [
         { id: "c1", l: "未亡人", m: "s" }, { id: "c2", l: "孝男", m: "s" }, { id: "c3", l: "孝媳", m: "s" },
         { id: "c4", l: "孝女", m: "s" }, { id: "c5", l: "孝女婿", m: "s" }, { id: "c6", l: "長孫", m: "s" },
@@ -113,23 +117,34 @@
         up();
     }
 
+    function addCustomField() {
+        const container = document.getElementById('custom-fields-container');
+        const div = document.createElement('div');
+        div.className = 'custom-row';
+        div.innerHTML = `
+            <div class="col-tag"><label>稱謂</label><input type="text" placeholder="例:誼曾孫" class="c-tag" oninput="up()"></div>
+            <div class="col-name"><label>姓名</label><input type="text" placeholder="王小明" class="c-name" oninput="up()"></div>
+        `;
+        container.appendChild(div);
+    }
+
     function up() {
         document.getElementById('out_name').innerText = "故者：" + document.getElementById('i_main').value;
-        const addr = document.getElementById('i_addr').value;
-        const tel = document.getElementById('i_tel').value;
-        const birth = document.getElementById('i_birth').value;
-        
-        let infoStr = "";
-        if(addr) infoStr += `住址：${addr}<br>`;
-        if(tel) infoStr += `電話：${tel}<br>`;
-        if(birth) infoStr += `生辰：${birth}`;
+        const infoStr = `住址：${document.getElementById('i_addr').value}<br>電話：${document.getElementById('i_tel').value}<br>生辰：${document.getElementById('i_birth').value}`;
         document.getElementById('out_info').innerHTML = infoStr;
 
         let html = "";
         fData.forEach(f => {
             const v = document.getElementById(f.id).value.trim();
-            if (v) {
-                html += `<div class="r-row"><div class="r-label">${f.l}</div><div class="r-names">${v.replace(/[,，]/g, "　")}</div></div>`;
+            if (v) html += `<div class="r-row"><div class="r-label">${f.l}</div><div class="r-names">${v.replace(/[,，]/g, "　")}</div></div>`;
+        });
+
+        // 處理自定義欄位
+        document.querySelectorAll('.custom-row').forEach(row => {
+            const tag = row.querySelector('.c-tag').value.trim();
+            const name = row.querySelector('.c-name').value.trim();
+            if (tag && name) {
+                html += `<div class="r-row"><div class="r-label">${tag}</div><div class="r-names">${name.replace(/[,，]/g, "　")}</div></div>`;
             }
         });
         document.getElementById('out_list').innerHTML = html;
@@ -143,7 +158,6 @@
         document.getElementById('res-img').src = cvs.toDataURL("image/png");
         document.getElementById('pop-img').style.display = 'flex';
     }
-
     chMode('s');
 </script>
 </body>
