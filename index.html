@@ -3,72 +3,69 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>訃聞名單產生器-手機優化版</title>
+    <title>專業訃聞完整版產生器</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         :root { --gold: #d4a373; --bg: #1a1a1a; }
         body { font-family: "Microsoft JhengHei", serif; margin: 0; background: #2c3e50; color: #fff; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         
-        /* 頂部切換與輸入區 - 縮小高度 */
-        #input-area { flex: 0 0 45%; background: var(--bg); overflow-y: auto; padding: 10px; border-bottom: 2px solid var(--gold); }
-        .mode-bar { display: flex; gap: 8px; margin-bottom: 10px; position: sticky; top: 0; background: var(--bg); z-index: 5; padding-bottom: 5px; }
-        .m-btn { flex: 1; padding: 8px; border: none; border-radius: 4px; background: #444; color: white; font-weight: bold; font-size: 14px; }
+        /* 頂部輸入區 */
+        #input-area { flex: 0 0 50%; background: var(--bg); overflow-y: auto; padding: 15px; border-bottom: 2px solid var(--gold); }
+        .mode-bar { display: flex; gap: 8px; margin-bottom: 15px; position: sticky; top: 0; background: var(--bg); z-index: 10; padding-bottom: 5px; }
+        .m-btn { flex: 1; padding: 10px; border: none; border-radius: 4px; background: #444; color: white; font-weight: bold; }
         .m-btn.active { background: var(--gold); color: #000; }
 
-        .cat { margin-bottom: 12px; background: #252525; padding: 8px; border-radius: 6px; }
-        .cat-t { color: var(--gold); font-size: 14px; font-weight: bold; border-bottom: 1px solid #444; margin-bottom: 8px; }
-        .i-row { margin-bottom: 6px; display: none; } /* 預設隱藏，由 JS 控制 */
-        .i-row.v { display: block; }
-        label { display: block; font-size: 11px; color: #888; }
-        input { width: 100%; padding: 6px; border-radius: 4px; border: 1px solid #333; background: #000; color: #fff; box-sizing: border-box; font-size: 14px; }
+        .cat { margin-bottom: 15px; background: #252525; padding: 10px; border-radius: 8px; }
+        .cat-t { color: var(--gold); font-size: 14px; font-weight: bold; border-bottom: 1px solid #444; margin-bottom: 10px; }
+        .i-row { margin-bottom: 8px; }
+        label { display: block; font-size: 11px; color: #aaa; margin-bottom: 2px; }
+        input { width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #333; background: #000; color: #fff; box-sizing: border-box; font-size: 15px; }
 
-        /* 下方預覽區 - 讓圖片看起來小一點 */
-        #preview-area { flex: 1; background: #34495e; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; align-items: center; }
+        /* 預覽區 */
+        #preview-pane { flex: 1; background: #34495e; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; align-items: center; }
         #obit-canvas { 
-            width: 90%; max-width: 360px; background: white; padding: 30px 20px; color: black; box-sizing: border-box; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3); transform: scale(0.9); transform-origin: top center;
+            width: 100%; max-width: 400px; background: white; padding: 30px; color: black; box-sizing: border-box; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5); transform: scale(0.85); transform-origin: top center;
         }
         
-        /* 訃聞排版樣式 */
-        .h1 { text-align: center; font-size: 32px; font-weight: bold; margin-bottom: 15px; letter-spacing: 10px; }
-        .name-box { border: 2px solid #000; text-align: center; padding: 8px; font-size: 20px; font-weight: bold; margin-bottom: 20px; }
-        .r-row { display: flex; margin-bottom: 6px; border-bottom: 1px solid #eee; padding-bottom: 3px; align-items: flex-start; }
-        .r-label { width: 85px; font-weight: bold; font-size: 14px; border-right: 1px solid #000; margin-right: 8px; flex-shrink: 0; }
-        .r-names { flex-grow: 1; font-size: 14px; letter-spacing: 1px; word-break: break-all; }
+        .h1 { text-align: center; font-size: 36px; font-weight: bold; margin-bottom: 15px; letter-spacing: 15px; }
+        .basic-info { font-size: 13px; border-bottom: 1px solid #ccc; padding-bottom: 10px; margin-bottom: 15px; line-height: 1.6; }
+        .name-box { border: 2px solid #000; text-align: center; padding: 10px; font-size: 22px; font-weight: bold; margin-bottom: 20px; }
+        .r-row { display: flex; margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 4px; }
+        .r-label { width: 95px; font-weight: bold; font-size: 14px; border-right: 1px solid #000; margin-right: 10px; flex-shrink: 0; }
+        .r-names { flex-grow: 1; font-size: 14px; letter-spacing: 1px; }
 
-        /* 按鈕區 */
+        /* 按鈕與彈出層 */
         .f-bar { padding: 10px; background: #1a1a1a; }
-        .gen-btn { width: 100%; padding: 12px; background: #27ae60; color: white; border: none; border-radius: 4px; font-size: 16px; font-weight: bold; }
-
-        /* 彈出圖片層 */
-        #pop-img { 
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(0,0,0,0.9); z-index: 100; flex-direction: column; align-items: center; justify-content: center; 
-        }
-        #pop-img img { max-width: 90%; max-height: 80%; border: 2px solid white; }
-        .pop-t { color: var(--gold); margin-bottom: 10px; font-weight: bold; }
-        .close-pop { margin-top: 15px; color: #ccc; text-decoration: underline; }
+        .gen-btn { width: 100%; padding: 15px; background: #27ae60; color: white; border: none; border-radius: 4px; font-size: 18px; font-weight: bold; }
+        #pop-img { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 100; flex-direction: column; align-items: center; justify-content: center; }
+        #pop-img img { max-width: 90%; max-height: 85%; border: 2px solid white; }
     </style>
 </head>
 <body>
 
 <div id="input-area">
     <div class="mode-bar">
-        <button class="m-btn active" onclick="chMode('s')">小家庭模式</button>
-        <button class="m-btn" onclick="chMode('l')">大家庭 (39欄位)</button>
+        <button class="m-btn active" onclick="chMode('s')">常用欄位</button>
+        <button class="m-btn" onclick="chMode('l')">完整 39 欄位</button>
     </div>
 
-    <div class="cat v">
-        <div class="cat-t">亡者姓名</div>
-        <input type="text" id="in_main" value="王大明" oninput="up()">
+    <div class="cat">
+        <div class="cat-t">亡者基本資訊</div>
+        <div class="i-row"><label>故者姓名</label><input type="text" id="i_main" value="王大明" oninput="up()"></div>
+        <div class="i-row"><label>住址</label><input type="text" id="i_addr" oninput="up()"></div>
+        <div class="i-row"><label>聯絡電話</label><input type="text" id="i_tel" oninput="up()"></div>
+        <div class="i-row"><label>生辰 (農/國曆)</label><input type="text" id="i_birth" placeholder="例：民國20年1月1日" oninput="up()"></div>
     </div>
 
-    <div id="fields"></div> </div>
+    <div id="fields"></div>
+</div>
 
-<div id="preview-area">
+<div id="preview-pane">
     <div id="obit-canvas">
         <div class="h1">聞</div>
-        <div class="name-box" id="out_main">故者：王大明</div>
+        <div class="basic-info" id="out_info"></div>
+        <div class="name-box" id="out_name">故者：王大明</div>
         <div id="out_list"></div>
     </div>
 </div>
@@ -78,60 +75,61 @@
 </div>
 
 <div id="pop-img" onclick="this.style.display='none'">
-    <div class="pop-t">↓ 已生成！請長按圖片儲存至相簿 ↓</div>
+    <div style="color:var(--gold); margin-bottom:10px;">↓ 長按圖片儲存至相簿 ↓</div>
     <img id="res-img" src="">
-    <div class="close-pop">點擊任何地方關閉</div>
+    <div style="margin-top:10px; color:#ccc;">點擊關閉</div>
 </div>
 
 <script>
-    // 定義所有 39 個欄位 (l:大家庭, s:小家庭)
-    const fMap = [
-        { id: "c1", l: "未亡人", m: "s" }, { id: "c2", l: "孝　男", m: "s" }, { id: "c3", l: "孝　媳", m: "s" },
-        { id: "c4", l: "孝　女", m: "s" }, { id: "c5", l: "孝女婿", m: "s" }, { id: "c6", l: "長　孫", m: "l" },
-        { id: "c7", l: "長孫媳", m: "l" }, { id: "c8", l: "孝　孫", m: "s" }, { id: "c9", l: "孝孫錫", m: "l" },
-        { id: "c10", l: "孝孫女", m: "s" }, { id: "c11", l: "孝孫婿", m: "l" }, { id: "c12", l: "孝外孫", m: "l" },
-        { id: "c13", l: "孝外孫媳", m: "l" }, { id: "c14", l: "孝外孫女", m: "l" }, { id: "c15", l: "孝外孫婿", m: "l" },
+    // 完整 39 個親屬欄位
+    const fData = [
+        { id: "c1", l: "未亡人", m: "s" }, { id: "c2", l: "孝男", m: "s" }, { id: "c3", l: "孝媳", m: "s" },
+        { id: "c4", l: "孝女", m: "s" }, { id: "c5", l: "孝女婿", m: "s" }, { id: "c6", l: "長孫", m: "s" },
+        { id: "c7", l: "長孫媳", m: "l" }, { id: "c8", l: "孝孫", m: "s" }, { id: "c9", l: "孝孫錫", m: "l" },
+        { id: "c10", l: "孝孫女", m: "s" }, { id: "c11", l: "孝孫婿", m: "l" }, { id: "c12", l: "孝外孫", m: "s" },
+        { id: "c13", l: "孝外孫媳", m: "l" }, { id: "c14", l: "孝外孫女", m: "s" }, { id: "c15", l: "孝外孫婿", m: "l" },
         { id: "c16", l: "孝曾孫", m: "l" }, { id: "c17", l: "孝曾孫女", m: "l" }, { id: "c18", l: "孝外曾孫", m: "l" },
-        { id: "c19", l: "孝外曾孫女", m: "l" }, { id: "c20", l: "胞　弟", m: "s" }, { id: "c21", l: "胞弟媳", m: "l" },
-        { id: "c22", l: "胞　姊", m: "l" }, { id: "c23", l: "胞　妹", m: "l" }, { id: "c24", l: "胞姊夫", m: "l" },
-        { id: "c25", l: "胞妹婿", m: "l" }, { id: "c26", l: "胞　姪", m: "l" }, { id: "c27", l: "胞姪媳", m: "l" },
+        { id: "c19", l: "孝外曾孫女", m: "l" }, { id: "c20", l: "胞弟", m: "s" }, { id: "c21", l: "胞弟媳", m: "l" },
+        { id: "c22", l: "胞姊", m: "s" }, { id: "c23", l: "胞妹", m: "s" }, { id: "c24", l: "胞姊夫", m: "l" },
+        { id: "c25", l: "胞妹婿", m: "l" }, { id: "c26", l: "胞姪", m: "l" }, { id: "c27", l: "胞姪媳", m: "l" },
         { id: "c28", l: "胞姪女", m: "l" }, { id: "c29", l: "胞姪婿", m: "l" }, { id: "c30", l: "胞姪孫", m: "l" },
-        { id: "c31", l: "胞姪孫女", m: "l" }, { id: "c32", l: "義　子", m: "l" }, { id: "c33", l: "義　女", m: "l" }
+        { id: "c31", l: "胞姪孫女", m: "l" }, { id: "c32", l: "義子", m: "l" }, { id: "c33", l: "義女", m: "l" },
+        { id: "c34", l: "誼子", m: "l" }, { id: "c35", l: "誼女", m: "l" }, { id: "c36", l: "外孫婿", m: "l" },
+        { id: "c37", l: "外孫媳", m: "l" }, { id: "c38", l: "姻親", m: "l" }, { id: "c39", l: "族親", m: "l" }
     ];
 
-    // 初始化生成欄位
-    const fContainer = document.getElementById('fields');
-    fMap.forEach(f => {
-        const div = document.createElement('div');
-        div.className = `i-row ${f.m === 's' ? 's-mode' : 'l-mode'}`;
-        div.innerHTML = `<label>${f.l}</label><input type="text" id="${f.id}" oninput="up()">`;
-        fContainer.appendChild(div);
+    const fBox = document.getElementById('fields');
+    fData.forEach(f => {
+        const d = document.createElement('div');
+        d.className = `i-row ${f.m === 's' ? 'sm' : 'lg'}`;
+        d.innerHTML = `<label>${f.l}</label><input type="text" id="${f.id}" oninput="up()">`;
+        fBox.appendChild(d);
     });
 
     function chMode(m) {
         document.querySelectorAll('.m-btn').forEach(b => b.classList.remove('active'));
         event.target.classList.add('active');
-        const rows = document.querySelectorAll('.i-row');
-        rows.forEach(r => {
-            if (m === 's') {
-                r.style.display = r.classList.contains('s-mode') ? 'block' : 'none';
-            } else {
-                r.style.display = 'block';
-            }
-        });
+        document.querySelectorAll('.lg').forEach(el => el.style.display = (m === 'l') ? 'block' : 'none');
         up();
     }
 
     function up() {
-        document.getElementById('out_main').innerText = "故者：" + document.getElementById('in_main').value;
+        document.getElementById('out_name').innerText = "故者：" + document.getElementById('i_main').value;
+        const addr = document.getElementById('i_addr').value;
+        const tel = document.getElementById('i_tel').value;
+        const birth = document.getElementById('i_birth').value;
+        
+        let infoStr = "";
+        if(addr) infoStr += `住址：${addr}<br>`;
+        if(tel) infoStr += `電話：${tel}<br>`;
+        if(birth) infoStr += `生辰：${birth}`;
+        document.getElementById('out_info').innerHTML = infoStr;
+
         let html = "";
-        fMap.forEach(f => {
-            const val = document.getElementById(f.id).value.trim();
-            if (val) {
-                html += `<div class="r-row">
-                    <div class="r-label">${f.l}</div>
-                    <div class="r-names">${val.replace(/[,，]/g, "　")}</div>
-                </div>`;
+        fData.forEach(f => {
+            const v = document.getElementById(f.id).value.trim();
+            if (v) {
+                html += `<div class="r-row"><div class="r-label">${f.l}</div><div class="r-names">${v.replace(/[,，]/g, "　")}</div></div>`;
             }
         });
         document.getElementById('out_list').innerHTML = html;
@@ -139,17 +137,14 @@
 
     async function gen() {
         const node = document.getElementById('obit-canvas');
-        // 先暫時解除縮放以獲得高解析度圖片
         node.style.transform = "scale(1)";
-        const canvas = await html2canvas(node, { scale: 3, backgroundColor: "#ffffff" });
-        node.style.transform = "scale(0.9)";
-        
-        document.getElementById('res-img').src = canvas.toDataURL("image/png");
+        const cvs = await html2canvas(node, { scale: 3 });
+        node.style.transform = "scale(0.85)";
+        document.getElementById('res-img').src = cvs.toDataURL("image/png");
         document.getElementById('pop-img').style.display = 'flex';
     }
 
-    chMode('s'); // 初始設為小家族
+    chMode('s');
 </script>
-
 </body>
 </html>
