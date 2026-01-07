@@ -2,120 +2,109 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>專業訃聞親屬紀錄工具 (自動分級版)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>訃聞親屬名單產生器 (手機圖片版)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
-        body { font-family: "Microsoft JhengHei", serif; margin: 0; display: flex; height: 100vh; background-color: #2c3e50; color: #fff; }
+        :root { --main-gold: #d4a373; }
+        body { font-family: "Microsoft JhengHei", serif; margin: 0; background: #2c3e50; color: #fff; display: flex; flex-direction: column; }
         
-        /* 控制區 */
-        #sidebar { width: 450px; background: #1a1a1a; padding: 20px; overflow-y: auto; border-right: 2px solid #d4a373; }
-        .mode-selector { display: flex; gap: 10px; margin-bottom: 20px; padding: 10px; background: #333; border-radius: 8px; }
-        .mode-btn { flex: 1; padding: 10px; border: none; border-radius: 4px; cursor: pointer; background: #444; color: white; font-weight: bold; }
-        .mode-btn.active { background: #d4a373; color: #000; }
+        /* 手機版排版調整 */
+        #container { display: flex; flex-direction: column; height: 100vh; }
+        #sidebar { width: 100%; background: #1a1a1a; padding: 15px; box-sizing: border-box; overflow-y: auto; max-height: 50vh; border-bottom: 2px solid var(--main-gold); }
+        
+        .mode-selector { display: flex; gap: 10px; margin-bottom: 15px; }
+        .mode-btn { flex: 1; padding: 10px; border: none; border-radius: 4px; background: #444; color: white; font-weight: bold; cursor: pointer; }
+        .mode-btn.active { background: var(--main-gold); color: #000; }
 
-        .category { margin-bottom: 20px; background: #252525; padding: 15px; border-radius: 8px; display: none; }
+        .category { margin-bottom: 15px; background: #252525; padding: 10px; border-radius: 8px; display: none; }
         .category.show { display: block; }
-        .category-title { color: #d4a373; font-weight: bold; border-bottom: 1px solid #d4a373; margin-bottom: 10px; padding-bottom: 5px; }
+        .category-title { color: var(--main-gold); font-weight: bold; border-bottom: 1px solid var(--main-gold); margin-bottom: 8px; padding-bottom: 3px; }
         
-        .input-row { margin-bottom: 10px; }
-        .input-row.hidden { display: none; }
-        .input-row.show { display: block; }
+        input { width: 100%; padding: 10px; border-radius: 4px; border: 1px solid #444; background: #111; color: #fff; box-sizing: border-box; margin-bottom: 8px; font-size: 16px; }
         
-        label { display: block; font-size: 12px; color: #aaa; margin-bottom: 3px; }
-        input { width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #444; background: #111; color: #fff; box-sizing: border-box; }
-        
-        .action-area { position: sticky; bottom: 0; background: #1a1a1a; padding: 15px 0; border-top: 1px solid #444; }
-        .btn-pdf { width: 100%; padding: 15px; background: #c0392b; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 18px; font-weight: bold; }
-
         /* 預覽區 */
-        #preview-pane { flex-grow: 1; padding: 40px; display: flex; justify-content: center; overflow-y: auto; background: #34495e; }
-        #pdf-paper { width: 800px; background: white; padding: 80px; min-height: 1100px; color: black; box-shadow: 0 0 30px rgba(0,0,0,0.5); }
-        .obit-header { text-align: center; font-size: 60px; font-weight: bold; margin-bottom: 20px; letter-spacing: 25px; }
-        .deceased-name { border: 4px double #000; text-align: center; padding: 15px; font-size: 32px; font-weight: bold; margin-bottom: 50px; }
-        .rel-row { display: flex; margin-bottom: 12px; line-height: 1.6; }
-        .rel-label { width: 160px; font-weight: bold; font-size: 20px; border-right: 2px solid #000; margin-right: 20px; flex-shrink: 0; }
-        .rel-names { flex-grow: 1; font-size: 20px; letter-spacing: 2px; }
-        .footer { margin-top: 60px; display: flex; justify-content: space-between; font-weight: bold; font-size: 22px; }
+        #preview-pane { flex-grow: 1; background: #34495e; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; align-items: center; }
+        #obit-paper { 
+            width: 100%; max-width: 500px; background: white; padding: 40px 30px; color: black; box-sizing: border-box; 
+            box-shadow: 0 0 20px rgba(0,0,0,0.5); border-radius: 2px;
+        }
+        
+        /* 訃聞樣式 */
+        .obit-header { text-align: center; font-size: 40px; font-weight: bold; margin-bottom: 20px; letter-spacing: 15px; }
+        .deceased-name { border: 3px double #000; text-align: center; padding: 10px; font-size: 24px; font-weight: bold; margin-bottom: 30px; }
+        .rel-row { display: flex; margin-bottom: 10px; line-height: 1.4; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+        .rel-label { width: 90px; font-weight: bold; font-size: 16px; border-right: 1px solid #000; margin-right: 10px; flex-shrink: 0; }
+        .rel-names { flex-grow: 1; font-size: 16px; letter-spacing: 1px; word-break: break-all; }
+
+        /* 按鈕區 */
+        .btn-group { padding: 15px; background: #1a1a1a; display: flex; gap: 10px; }
+        .btn { flex: 1; padding: 15px; border: none; border-radius: 4px; font-size: 16px; font-weight: bold; cursor: pointer; color: white; }
+        .btn-image { background: #27ae60; }
+        
+        /* 生成的圖片容器 */
+        #result-container { padding: 20px; text-align: center; }
+        #result-image { max-width: 100%; border: 2px solid white; margin-top: 10px; }
+        .result-title { color: var(--main-gold); margin-top: 20px; font-weight: bold; }
     </style>
 </head>
 <body>
 
-<div id="sidebar">
-    <h2 style="text-align:center; color:#d4a373;">訃聞資料錄入</h2>
-
-    <div class="mode-selector">
-        <button class="mode-btn active" onclick="setMode('small')">一般小家族</button>
-        <button class="mode-btn" onclick="setMode('large')">傳統大家族</button>
-    </div>
-
-    <div id="fields-container">
-        <div class="category show">
-            <div class="category-title">亡者與配偶</div>
-            <div class="input-row show"><label>亡者姓名</label><input type="text" id="c_main" value="王大明" oninput="update()"></div>
-            <div class="input-row show"><label>未亡人 (配偶)</label><input type="text" id="c_unwidowed" oninput="update()"></div>
+<div id="container">
+    <div id="sidebar">
+        <div class="mode-selector">
+            <button class="mode-btn active" onclick="setMode('small')">小家族</button>
+            <button class="mode-btn" onclick="setMode('large')">大家族</button>
         </div>
 
         <div class="category show">
-            <div class="category-title">子女輩</div>
-            <div class="input-row show"><label>孝男</label><input type="text" id="c_son" oninput="update()"></div>
-            <div class="input-row show"><label>孝媳</label><input type="text" id="c_dil" oninput="update()"></div>
-            <div class="input-row show"><label>孝女</label><input type="text" id="c_dau" oninput="update()"></div>
-            <div class="input-row complex"><label>孝女婿</label><input type="text" id="c_sil" oninput="update()"></div>
-            <div class="input-row complex"><label>義子</label><input type="text" id="c_ason" oninput="update()"></div>
-            <div class="input-row complex"><label>義女</label><input type="text" id="c_adau" oninput="update()"></div>
+            <div class="category-title">主要家屬</div>
+            <input type="text" id="c_main" value="王大明" placeholder="故者姓名" oninput="update()">
+            <input type="text" id="c_unwidowed" placeholder="未亡人" oninput="update()">
+            <input type="text" id="c_son" placeholder="孝男" oninput="update()">
+            <input type="text" id="c_dau" placeholder="孝女" oninput="update()">
+            <div class="complex"><input type="text" id="c_dil" placeholder="孝媳" oninput="update()"></div>
+            <div class="complex"><input type="text" id="c_sil" placeholder="孝女婿" oninput="update()"></div>
         </div>
 
         <div class="category show">
-            <div class="category-title">孫輩</div>
-            <div class="input-row complex"><label>長孫</label><input type="text" id="c_gson_1" oninput="update()"></div>
-            <div class="input-row complex"><label>長孫媳</label><input type="text" id="c_gdil_1" oninput="update()"></div>
-            <div class="input-row show"><label>孝孫 (內孫)</label><input type="text" id="c_gson" oninput="update()"></div>
-            <div class="input-row complex"><label>孝孫媳</label><input type="text" id="c_gdil" oninput="update()"></div>
-            <div class="input-row show"><label>孝孫女 (內孫女)</label><input type="text" id="c_gdau" oninput="update()"></div>
-            <div class="input-row complex"><label>孝孫婿</label><input type="text" id="c_gsil" oninput="update()"></div>
-            <div class="input-row show"><label>孝外孫</label><input type="text" id="c_ogson" oninput="update()"></div>
-            <div class="input-row complex"><label>孝外孫媳</label><input type="text" id="c_ogdil" oninput="update()"></div>
-            <div class="input-row show"><label>孝外孫女</label><input type="text" id="c_ogdau" oninput="update()"></div>
-            <div class="input-row complex"><label>孝外孫婿</label><input type="text" id="c_ogsil" oninput="update()"></div>
-        </div>
-
-        <div class="category complex">
-            <div class="category-title">曾孫與平輩晚輩</div>
-            <div class="input-row complex"><label>孝曾孫/女</label><input type="text" id="c_ggson" oninput="update()"></div>
-            <div class="input-row complex"><label>孝外曾孫/女</label><input type="text" id="c_oggson" oninput="update()"></div>
-            <div class="input-row show"><label>胞兄弟姊妹</label><input type="text" id="c_sibs" oninput="update()"></div>
-            <div class="input-row complex"><label>胞弟媳/姊夫/妹婿</label><input type="text" id="c_sib_inlaw" oninput="update()"></div>
-            <div class="input-row complex"><label>胞姪/姪媳/姪女/姪婿</label><input type="text" id="c_nephews" oninput="update()"></div>
-            <div class="input-row complex"><label>胞姪孫/女</label><input type="text" id="c_gnephews" oninput="update()"></div>
+            <div class="category-title">孫輩與平輩</div>
+            <input type="text" id="c_gson" placeholder="孝孫" oninput="update()">
+            <input type="text" id="c_gdau" placeholder="孝孫女" oninput="update()">
+            <input type="text" id="c_sibs" placeholder="胞兄弟姊妹" oninput="update()">
+            <div class="complex">
+                <input type="text" id="c_ogson" placeholder="孝外孫" oninput="update()">
+                <input type="text" id="c_ogdau" placeholder="孝外孫女" oninput="update()">
+                <input type="text" id="c_ggson" placeholder="孝曾孫" oninput="update()">
+                <input type="text" id="c_nephews" placeholder="胞姪輩" oninput="update()">
+            </div>
         </div>
     </div>
 
-    <div class="action-area">
-        <button class="btn-pdf" onclick="exportPDF()">產生並下載 PDF 檔案</button>
-    </div>
-</div>
+    <div id="preview-pane">
+        <div id="obit-paper">
+            <div class="obit-header">聞</div>
+            <div class="deceased-name" id="out_main">故者：王大明</div>
+            <div id="out_list"></div>
+        </div>
 
-<div id="preview-pane">
-    <div id="pdf-paper">
-        <div class="obit-header">聞</div>
-        <div class="deceased-name" id="out_main">亡者：王大明</div>
-        <div id="out_list"></div>
-        <div class="footer"><span>啟</span><span>泣</span><span>同</span></div>
+        <div id="result-container" style="display: none;">
+            <div class="result-title">↓ 長按下方圖片即可儲存 ↓</div>
+            <img id="result-image" alt="生成的圖片">
+            <p>圖片已生成，您可以直接長按圖片儲存至相簿，或分享到 LINE。</p>
+        </div>
+    </div>
+
+    <div class="btn-group">
+        <button class="btn btn-image" onclick="exportImage()">轉換成圖片</button>
     </div>
 </div>
 
 <script>
-    let currentMode = 'small';
-
     function setMode(mode) {
-        currentMode = mode;
-        const btns = document.querySelectorAll('.mode-btn');
-        btns.forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
         event.target.classList.add('active');
-
-        const complexItems = document.querySelectorAll('.complex');
-        complexItems.forEach(item => {
+        document.querySelectorAll('.complex').forEach(item => {
             item.style.display = (mode === 'large') ? 'block' : 'none';
         });
         update();
@@ -124,56 +113,51 @@
     function update() {
         const fields = [
             { l: "未亡人", i: "c_unwidowed" },
-            { l: "孝　　男", i: "c_son" },
-            { l: "孝　　媳", i: "c_dil" },
-            { l: "孝　　女", i: "c_dau" },
-            { l: "孝  女  婿", i: "c_sil" },
-            { l: "義  子  女", i: "c_ason" },
-            { l: "長　　孫", i: "c_gson_1" },
-            { l: "長  孫  媳", i: "c_gdil_1" },
-            { l: "孝　　孫", i: "c_gson" },
-            { l: "孝  孫  媳", i: "c_gdil" },
-            { l: "孝  孫  女", i: "c_gdau" },
-            { l: "孝  孫  婿", i: "c_gsil" },
-            { l: "孝  外  孫", i: "c_ogson" },
-            { l: "孝外孫媳", i: "c_ogdil" },
-            { l: "孝外孫女", i: "c_ogdau" },
-            { l: "孝外孫婿", i: "c_ogsil" },
-            { l: "孝  曾  孫", i: "c_ggson" },
-            { l: "孝外曾孫", i: "c_oggson" },
+            { l: "孝　男", i: "c_son" },
+            { l: "孝　媳", i: "c_dil" },
+            { l: "孝　女", i: "c_dau" },
+            { l: "孝女婿", i: "c_sil" },
+            { l: "孝　孫", i: "c_gson" },
+            { l: "孝孫女", i: "c_gdau" },
+            { l: "外　孫", i: "c_ogson" },
+            { l: "外孫女", i: "c_ogdau" },
+            { l: "曾　孫", i: "c_ggson" },
             { l: "胞兄弟姊妹", i: "c_sibs" },
-            { l: "姻親平輩", i: "c_sib_inlaw" },
-            { l: "胞  姪  輩", i: "c_nephews" },
-            { l: "胞姪孫輩", i: "c_gnephews" }
+            { l: "胞姪輩", i: "c_nephews" }
         ];
 
         document.getElementById('out_main').innerText = "故者：" + document.getElementById('c_main').value;
         let html = "";
         fields.forEach(f => {
             let el = document.getElementById(f.i);
-            // 只有在當前模式下該欄位被填寫，才顯示在 PDF 預覽中
             if (el && el.value.trim() !== "") {
                 html += `<div class="rel-row">
                     <div class="rel-label">${f.l}</div>
-                    <div class="rel-names">${el.value.replace(/[,，]/g, "　　")}</div>
+                    <div class="rel-names">${el.value.replace(/[,，]/g, "　")}</div>
                 </div>`;
             }
         });
         document.getElementById('out_list').innerHTML = html;
+        // 隱藏舊的圖片
+        document.getElementById('result-container').style.display = 'none';
     }
 
-    async function exportPDF() {
-        const area = document.getElementById('pdf-paper');
-        const canvas = await html2canvas(area, { scale: 2 });
-        const imgData = canvas.toDataURL('image/png');
-        const pdf = new jspdf.jsPDF('p', 'mm', 'a4');
-        const w = pdf.internal.pageSize.getWidth();
-        const h = (canvas.height * w) / canvas.width;
-        pdf.addImage(imgData, 'PNG', 0, 0, w, h);
-        pdf.save(`親屬表_${document.getElementById('c_main').value}.pdf`);
+    async function exportImage() {
+        const paper = document.getElementById('obit-paper');
+        const canvas = await html2canvas(paper, {
+            scale: 2,
+            backgroundColor: "#ffffff",
+            logging: false
+        });
+        
+        const imgElement = document.getElementById('result-image');
+        imgElement.src = canvas.toDataURL("image/png");
+        document.getElementById('result-container').style.display = 'block';
+        
+        // 自動滾動到圖片位置
+        document.getElementById('result-container').scrollIntoView({ behavior: 'smooth' });
     }
 
-    // 初始化模式
     setMode('small');
 </script>
 
